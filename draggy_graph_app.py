@@ -53,8 +53,9 @@ class DraggyGraphApp():
         self.ubercanvas.bind("<Control-Button-5>", self.ubercanvas.zoom_out)
 
         # Drag canvas bindings.
-        self.ubercanvas.bind("<Button-2>", self.ubercanvas.start_canvas_drag)
+        #self.ubercanvas.bind("<Button-2>", self.ubercanvas.start_canvas_drag)
         self.ubercanvas.bind("<B2-Motion>", self.ubercanvas.canvas_drag)
+        self.ubercanvas.bind("<ButtonRelease-2>", self.ubercanvas.stop_canvas_drag)
 
         # Scroll canvas bindings.
         # TODO: only make these work if mouse is over canvas.

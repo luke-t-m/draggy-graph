@@ -100,17 +100,19 @@ class UberCanvas:
     def set_zoom(self, new_zoom):
         self.change_zoom(new_zoom / self.zoom)
 
-    def reset_zoom(self):
+    # Binding Functions.
+
+    def reset_zoom(self, _):
         self.set_zoom(2) # TODO
 
     def zoom_in(self, event):
         self.change_zoom(1 + self.zoom_delta, event)
 
     def zoom_out(self, event):
-        self.change_zoom(1 + self.zoom_delta, event)
+        self.change_zoom(1 - self.zoom_delta, event)
 
     def scroll_up(self, _):
-        self.ubercanvas.yview_scroll(-self.scroll_delta, "units")
+        self.canvas.yview_scroll(-self.scroll_delta, "units")
     
     def scroll_down(self, _):
         self.canvas.yview_scroll(self.scroll_delta, "units")
@@ -121,14 +123,15 @@ class UberCanvas:
     def scroll_left(self, _):
         self.canvas.xview_scroll(-self.scroll_delta, "units")
 
-
-        
-
-    def start_canvas_drag(self, event):
-        self.canvas.scan_mark(event.x, event.y)
-
+    # Start dragging on motion, and stop on button release.
+    # Why? Thinkpad touchpad middleclick only "presses" on release.
     def canvas_drag(self, event):
+        self.canvas.scan_mark(event.x, event.y)
+        print("we begin to drag")
+
+    def stop_canvas_drag(self, event):
         self.canvas.scan_dragto(event.x, event.y, gain=1)
+        print("and... dragged up")
 
 
 """
