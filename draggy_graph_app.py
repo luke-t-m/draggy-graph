@@ -3,7 +3,7 @@ from tkinter import messagebox
 import signal
 from collections import defaultdict
 
-from ubercanvas import UberCanvas
+from graph_canvas import GraphCanvas
 
 
 class KeyBind:
@@ -34,20 +34,23 @@ class DraggyGraphApp:
         self.root.geometry("600x400+100+100")
         self.root.minsize(300, 200)
 
-        self.ubercanvas = UberCanvas(self.root)
+        self.canvas = GraphCanvas(self.root)
+
+
+        self.canvas.draw_circle(0, 0, 10, "yellow")
 
         self.functions_map = {
-            "Scroll up": FunctionWithType("scroll", self.ubercanvas.scroll_up),
-            "Scroll down": FunctionWithType("scroll", self.ubercanvas.scroll_down),
-            "Scroll left": FunctionWithType("scroll", self.ubercanvas.scroll_left),
-            "Scroll right": FunctionWithType("scroll", self.ubercanvas.scroll_right),
-            "Scroll up+left": FunctionWithType("scroll", self.ubercanvas.scroll_upleft),
-            "Scroll up+right": FunctionWithType("scroll", self.ubercanvas.scroll_upright),
-            "Scroll down+left": FunctionWithType("scroll", self.ubercanvas.scroll_downleft),
-            "Scroll down+right": FunctionWithType("scroll", self.ubercanvas.scroll_downright),
-            "Zoom in": FunctionWithType("zoom", self.ubercanvas.zoom_in),
-            "Zoom out": FunctionWithType("zoom", self.ubercanvas.zoom_out),
-            "Reset zoom": FunctionWithType("zoom", self.ubercanvas.reset_zoom),
+            "Scroll up": FunctionWithType("scroll", self.canvas.scroll_up),
+            "Scroll down": FunctionWithType("scroll", self.canvas.scroll_down),
+            "Scroll left": FunctionWithType("scroll", self.canvas.scroll_left),
+            "Scroll right": FunctionWithType("scroll", self.canvas.scroll_right),
+            "Scroll up+left": FunctionWithType("scroll", self.canvas.scroll_upleft),
+            "Scroll up+right": FunctionWithType("scroll", self.canvas.scroll_upright),
+            "Scroll down+left": FunctionWithType("scroll", self.canvas.scroll_downleft),
+            "Scroll down+right": FunctionWithType("scroll", self.canvas.scroll_downright),
+            "Zoom in": FunctionWithType("zoom", self.canvas.zoom_in),
+            "Zoom out": FunctionWithType("zoom", self.canvas.zoom_out),
+            "Reset zoom": FunctionWithType("zoom", self.canvas.reset_zoom),
         }
 
         self.make_fixed_bindings()
@@ -84,6 +87,7 @@ class DraggyGraphApp:
             if all(self.key_states[key] for key in keybind.keys):
                 to_exec = self.functions_map[keybind.func_name].func
                 to_exec(event)
+                return
 
     def key_released(self, event):
         pressed = event.keysym
@@ -109,27 +113,27 @@ class DraggyGraphApp:
                 self.keybinds[key].append(keybind)
 
         for keybinds in self.keybinds.values():
-            keybinds.sort(key=lambda kb: len(kb.keys))
+            keybinds.sort(key=lambda kb: len(kb.keys), reverse=True)
 
     def make_fixed_bindings(self):
         self.root.bind("<Key>", self.key_pressed)
         self.root.bind("<KeyRelease>", self.key_released)
 
         # Zoom bindings.
-        self.root.bind("<Configure>", self.ubercanvas.update_canvas_size)
-        self.ubercanvas.bind("<Control-Button-4>", self.ubercanvas.zoom_in)
-        self.ubercanvas.bind("<Control-Button-5>", self.ubercanvas.zoom_out)
+        self.root.bind("<Configure>", self.canvas.update_canvas_size)
+        self.canvas.bind("<Control-Button-4>", self.canvas.zoom_in)
+        self.canvas.bind("<Control-Button-5>", self.canvas.zoom_out)
 
         # Drag canvas bindings.
-        self.ubercanvas.bind("<Button-2>", self.ubercanvas.start_canvas_drag)
-        self.ubercanvas.bind("<B2-Motion>", self.ubercanvas.canvas_drag)
+        self.canvas.bind("<Button-2>", self.canvas.start_canvas_drag)
+        self.canvas.bind("<B2-Motion>", self.canvas.canvas_drag)
 
         # Scroll canvas bindings.
         # TODO: only make these work if mouse is over canvas.
-        self.ubercanvas.bind("<Button-4>", self.ubercanvas.scroll_up)
-        self.ubercanvas.bind("<Button-5>", self.ubercanvas.scroll_down)
-        self.ubercanvas.bind("<Shift-Button-4>", self.ubercanvas.scroll_left)
-        self.ubercanvas.bind("<Shift-Button-5>", self.ubercanvas.scroll_right)
+        self.canvas.bind("<Button-4>", self.canvas.scroll_up)
+        self.canvas.bind("<Button-5>", self.canvas.scroll_down)
+        self.canvas.bind("<Shift-Button-4>", self.canvas.scroll_left)
+        self.canvas.bind("<Shift-Button-5>", self.canvas.scroll_right)
 
 
 if __name__ == "__main__":
