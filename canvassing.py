@@ -1,47 +1,30 @@
 import tkinter as tk
 from tkinter import messagebox
 import signal
-from enum import Enum
-from scipy.interpolate import interp1d
-import numpy as np
-import shapely
 
 
-# to-do: ghost cones before placing, show distances to other cones.
+# to-do:
+# vagueify variable names in code, no "midpoint" shit!!!
+# extract generic stuff to class in another file that gets extended.
+# have node class- stores name and connections.
+# find a way to give lines some kind of "tag" to associate them with their node
+# on drag, just delete and redraw associated lines.
+# add a settings file that stores settings. Rebinding, prompts, etc.
 
 
-class Tools(Enum):
-    DRAG_CANVAS = 0
-    PLACE_MIDPOINT = 1
-    DRAG_MIDPOINT = 2
-    INSERT_MIDPOINT = 3
-
-
-class ConeTypes(Enum):
-    BLUE = "dodger blue"
-    YELLOW = "yellow"
-    ORANGE = "orange"
-    BIG_ORANGE = "darkorange1"
-    MIDLINE = "red"
-    UNKNOWN_COLOUR = "gray"
-
-
-
-class TrackDrawerApp:
+class CanvasApp:
     def __init__(self, app_name, canvas_radius):
         self.app_name = app_name
         self.canvas_radius = canvas_radius
 
+        self.exit_msg = f"You have unsaved work!\nPlease confirm you wish to exit {self.app_name}."
+        self.do_exit_msg = False
+
         self.min_zoom = 1
         self.max_zoom = 300
         self.zoom = self.min_zoom
-
-        self.cone_radius = 0.25
-        self.tool = Tools(0)
-        self.conetype = ConeTypes.BLUE
-
-        self.midpoints = list()
-        self.midline_line_ids = list()
+        self.zoom_delta = 0.2
+        self.scroll_delta = 2
 
         # Window.
         self.root = tk.Tk()
@@ -53,18 +36,15 @@ class TrackDrawerApp:
         self.canvas_frame = tk.Frame(self.root)
         self.canvas_frame.grid(row=0, column=0)
         # Canvas.
-        self.canvas = tk.Canvas(
-            master=self.canvas_frame,
-            bg="white",
-        )
+        self.canvas = tk.Canvas(self.canvas_frame, bg="white")
         # Scroll bars.
         self.hor_scrollbar = tk.Scrollbar(
-            master=self.canvas_frame,
+            self.canvas_frame,
             orient="horizontal",
             command=self.canvas.xview,
         )
         self.vert_scrollbar = tk.Scrollbar(
-            master=self.canvas_frame,
+            self.canvas_frame,
             orient="vertical",
             command=self.canvas.yview,
         )
@@ -92,7 +72,7 @@ class TrackDrawerApp:
                 fill="grey",
                 width=0.1,
             )
-        # Grid.
+        # Pack canvas and scrollbars.
         self.hor_scrollbar.grid(row=1, column=0, sticky="ew")
         self.vert_scrollbar.grid(row=0, column=1, sticky="ns")
         self.canvas.grid(row=0, column=0, sticky="nsew")
@@ -100,64 +80,65 @@ class TrackDrawerApp:
         self.update_scroll_region()
         self.update_canvas_size()
 
-        # Handle window resizing.
-        self.root.bind(sequence="<Configure>", func=lambda _: self.update_canvas_size())
-        # Canvas bindings.
-        self.canvas.bind("<Button-1>", self.handle_left_click)
-        # Move canvas when dragging.
-        self.canvas.bind("<B1-Motion>", self.handle_drag)
-        # Zoom in on mouse wheel.
+        # Zoom bindings.
+        self.root.bind("<Configure>", lambda _: self.update_canvas_size())
+        self.root.bind("<Control-0>", lambda _: self.set_zoom(2))  # TODO
         self.canvas.bind(
-            sequence="<Control-Button-4>",
-            func=lambda event: self.change_zoom(1.2, event),
+            "<Control-Button-4>",
+            lambda e: self.change_zoom(1 + self.zoom_delta, e)
         )
-        # Zoom out on mouse wheel.
         self.canvas.bind(
-            sequence="<Control-Button-5>",
-            func=lambda event: self.change_zoom(0.8, event),
+            "<Control-Button-5>",
+            lambda e: self.change_zoom(1 - self.zoom_delta, e)
         )
-        # Reset zoom.
-        self.root.bind("0", func=lambda _: self.set_zoom(2))
-        
-        #self.canvas.create_oval(0, 0, 10, 10, fill="yellow") # the sun
 
-        # Zoom in so the start dominates the screen.
+        # Drag canvas bindings.
+        self.canvas.bind("<Button-2>", self.start_canvas_drag)
+        self.canvas.bind("<B2-Motion>", self.canvas_drag)
+
+        # Scroll canvas bindings.
+        self.canvas.bind(
+            "<Button-4>",
+            lambda _: self.canvas.yview_scroll(-self.scroll_delta, "units")
+        )
+        self.canvas.bind(
+            "<Button-5>",
+            lambda _: self.canvas.yview_scroll(self.scroll_delta, "units")
+        )
+        self.canvas.bind(
+            "<Shift-Button-4>",
+            lambda _: self.canvas.xview_scroll(self.scroll_delta, "units")
+        )
+        self.canvas.bind(
+            "<Shift-Button-5>",
+            lambda _: self.canvas.xview_scroll(-self.scroll_delta, "units")
+        )
+
+        # Zoom in so the start dominates the screen. TODO: maths it.
         self.change_zoom(self.max_zoom / (self.min_zoom * 4))
 
         # Check signals so app isn't left a zombie after kill in terminal.
         signal.signal(signal.SIGINT, self.destroy_app)
-        # This may seem useless, but program won't catch signals
-        # from mainloop alone. Something about context switching.
         self.loop_for_signals()
         self.root.protocol("WM_DELETE_WINDOW", self.on_delete_window)
 
-        # Bind num keys to tools (DON'T HAVE MORE THAN 9 TOOLS)
-        for n in range(len(Tools)):
-            toolchange_lambda = self.create_lambda(self.set_tool, n)
-            self.root.bind(str(n + 1), toolchange_lambda)
-
-        self.mouse_follower = self.draw_circle(0, 0, self.cone_radius / 5, "black")
-        self.canvas.bind("<Motion>", self.handle_motion)
-
-        self.dragging = None
-        self.midlinestring = None
-        self.inserting_hoverer = None
-
         self.root.mainloop()
 
+    # Calls itself forever. Causes context switch so signal handling works.
     def loop_for_signals(self):
         self.root.after(100, self.loop_for_signals)
 
-    def destroy_app(self, *args):
+    def destroy_app(self, *_):
         print("\nGoodbye!")
         self.root.destroy()
 
     def on_delete_window(self):
-        if messagebox.askokcancel(
+        if self.do_exit_msg and not messagebox.askokcancel(
             f"Exit {self.app_name}",
-            f"Please confirm you wish to exit {self.app_name}.",
+            self.exit_msg,
         ):
-            self.destroy_app()
+            return
+        self.destroy_app()
 
     def update_scroll_region(self):
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -184,39 +165,83 @@ class TrackDrawerApp:
             self.canvas.scale("all", true_x, true_y, factor, factor)
             self.update_scroll_region()
 
-    def handle_left_click(self, event):
-        print("handlin ", self.tool)
+    def start_canvas_drag(self, event):
+        self.canvas.scan_mark(event.x, event.y)
+
+    def canvas_drag(self, event):
+        self.canvas.scan_dragto(event.x, event.y, gain=1)
+
+
+if __name__ == "__main__":
+    CanvasApp("Raw CanvasApp", 50)
+
+
+"""
+
+    def _handle_left_click(self, event):
         match self.tool:
             case Tools.DRAG_CANVAS:
                 self.canvas.scan_mark(event.x, event.y)
-            case Tools.PLACE_MIDPOINT:
-                self.place_midpoint(event)
-            case Tools.DRAG_MIDPOINT:
+            case Tools.PLACE_POINT:
+                self.place_point(event)
+            case Tools.DRAG_POINT:
                 self.dragging = self.find_draggable(event)
 
 
-    def handle_motion(self, event):
+    def _handle_motion(self, event):
+        self.move_circle(self.cursor, self.canvas.canvasx(event.x), self.canvas.canvasy(event.y))
         match self.tool:
             case Tools.DRAG_CANVAS:
                 pass
-            case Tools.PLACE_MIDPOINT:
-                self.move_circle(self.mouse_follower, self.canvas.canvasx(event.x), self.canvas.canvasy(event.y))
-            case DRAG_MIDPOINT:
+            case Tools.PLACE_POINT:
+                self.move_circle(self.cursor, self.canvas.canvasx(event.x), self.canvas.canvasy(event.y))
+            case DRAG_POINT:
                 pass
 
     def handle_drag(self, event):
         match self.tool:
             case Tools.DRAG_CANVAS:
                 self.canvas.scan_dragto(event.x, event.y, gain=1)
-            case Tools.PLACE_MIDPOINT:
+            case Tools.PLACE_POINT:
                 pass
-            case Tools.DRAG_MIDPOINT:
-                print(self.dragging)
+            case Tools.DRAG_POINT:
                 self.move_circle(self.dragging, self.canvas.canvasx(event.x), self.canvas.canvasy(event.y))
                 self.draw_midline()
 
 
-    def find_draggable(self, event):
+                
+                        # Bindings.
+        self.canvas.bind("<Button-1>", self.handle_left_click)
+        self.canvas.bind("<B1-Motion>", self.handle_drag)
+        # Zoom in on mouse wheel.
+        self.canvas.bind(
+            "<Control-Button-4>",
+            func=lambda event: self.change_zoom(1.2, event),
+        )
+        # Zoom out on mouse wheel.
+        self.canvas.bind(
+            "<Control-Button-5>",
+            func=lambda event: self.change_zoom(0.8, event),
+        )
+        # Reset zoom.
+        self.root.bind("Control-0", func=lambda _: self.set_zoom(2))
+
+        # Zoom in so the start dominates the screen. TODO: maths it.
+        self.change_zoom(self.max_zoom / (self.min_zoom * 4))
+
+        # Check signals so app isn't left a zombie after kill in terminal.
+        signal.signal(signal.SIGINT, self.destroy_app)
+        # This may seem useless, but program won't catch signals
+        # from mainloop alone. Something about context switching.
+        self.loop_for_signals()
+        self.root.protocol("WM_DELETE_WINDOW", self.on_delete_window)
+
+        self.cursor = self.draw_circle(0, 0, self.cone_radius / 5, "black")
+        self.canvas.bind("<Motion>", self.handle_motion)
+
+
+
+        def find_draggable(self, event):
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
         mod = 0.01
@@ -227,78 +252,12 @@ class TrackDrawerApp:
             if "draggable" in self.canvas.gettags(object_id):
                 return object_id
 
-    def place_midpoint(self, event):
+    def place_point(self, event):
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
-        midpoint = self.draw_circle(x, y, self.cone_radius, "red", tags=("midpoint", "draggable"))
+        midpoint = self.draw_circle(x, y, self.cone_radius, "red", tags=("point", "draggable"))
         self.midpoints.append(midpoint)
         self.draw_midline()
-
-    def drag_midpoint(self, event):
-        pass
-
-
-    def draw_midline(self):
-        while len(self.midline_line_ids) > 0:
-            self.canvas.delete(self.midline_line_ids.pop())
-
-        match len(self.midpoints):
-            case 0:
-                return
-            case 1:
-                return
-            case 2:
-                kind = "linear"
-            case _:
-                kind = "quadratic"
-            #case _:
-            #    kind = "cubic"
-
-        x = list()
-        y = list()
-        for midpoint in self.midpoints:
-            coords = self.canvas.coords(midpoint)
-            x.append(coords[0] + self.zoom * self.cone_radius)
-            y.append(coords[1] + self.zoom * self.cone_radius)
-
-        t = np.arange(len(x))
-        ti = np.linspace(0, t.max(), 10 * t.size)
-        xi = interp1d(t, x, kind=kind)(ti)
-        yi = interp1d(t, y, kind=kind)(ti)
-
-        xys = []
-
-        last_x, last_y = xi[0], yi[0]
-        for (x, y) in zip(xi[1:], yi[1:]):
-            line_id = self.canvas.create_line(last_x, last_y, x, y, width=self.zoom*0.02)
-            last_x = x
-            last_y = y
-            xys.append((x, y))
-            self.midline_line_ids.append(line_id)
-
-        self.midlinestring = shapely.LineString(xys)
-
-        blue_line = self.midlinestring.offset_curve(self.zoom * 1.5)
-        last_x, last_y = blue_line.coords[0]
-        for xy in blue_line.coords[1:]:
-            x = xy[0]
-            y = xy[1]
-            line_id = self.canvas.create_line(last_x, last_y, x, y, fill="dodger blue", width=self.zoom*0.02)
-            last_x = x
-            last_y = y
-            xys.append((x, y))
-            self.midline_line_ids.append(line_id)
-
-        blue_line = self.midlinestring.offset_curve(self.zoom * -1.5)
-        last_x, last_y = blue_line.coords[0]
-        for xy in blue_line.coords[1:]:
-            x = xy[0]
-            y = xy[1]
-            line_id = self.canvas.create_line(last_x, last_y, x, y, fill="gold", width=self.zoom*0.02)
-            last_x = x
-            last_y = y
-            xys.append((x, y))
-            self.midline_line_ids.append(line_id)
 
     def draw_circle(self, x, y, size, colour, tags=None):
         mod = size * self.zoom
@@ -308,7 +267,7 @@ class TrackDrawerApp:
             x + mod,
             y + mod,
             fill=colour,
-            tags = tags
+            tags=tags
         )
 
     def move_circle(self, object, x, y):
@@ -320,9 +279,6 @@ class TrackDrawerApp:
         self.tool = Tools(toolnum)
         print(f"set tool to {self.tool}")
 
-    def create_lambda(self, function, arg):
-        return lambda _: function(arg)
 
 
-if __name__ == "__main__":
-    TrackDrawerApp("EUFS Track Drawer V2", 50)
+"""
