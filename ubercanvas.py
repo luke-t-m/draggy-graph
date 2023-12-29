@@ -3,15 +3,6 @@ import tkinter as tk
 from helpers import consec_func
 
 
-# to-do:
-# vagueify variable names in code, no "midpoint" shit!!!
-# extract generic stuff to class in another file that gets extended.
-# have node class- stores name and connections.
-# find a way to give lines some kind of "tag" to associate them with their node
-# on drag, just delete and redraw associated lines.
-# add a settings file that stores settings. Rebinding, prompts, etc.
-
-
 class UberCanvas:
     def __init__(self, root, canvas_radius=50):
         self.root = root
@@ -93,6 +84,7 @@ class UberCanvas:
             else:
                 true_x = self.canvas.canvasx(self.canvas.winfo_width() / 2)
                 true_y = self.canvas.canvasy(self.canvas.winfo_height() / 2)
+                print(true_x, true_y)
             self.canvas.scale("all", true_x, true_y, factor, factor)
             self.update_scroll_region()
 

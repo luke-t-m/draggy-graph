@@ -36,8 +36,7 @@ class DraggyGraphApp:
 
         self.canvas = GraphCanvas(self.root)
 
-
-        self.canvas.draw_circle(0, 0, 10, "yellow")
+        self.canvas.draw_circle(0, 0, 1, "yellow")
 
         self.functions_map = {
             "Scroll up": FunctionWithType("scroll", self.canvas.scroll_up),
@@ -48,9 +47,12 @@ class DraggyGraphApp:
             "Scroll up+right": FunctionWithType("scroll", self.canvas.scroll_upright),
             "Scroll down+left": FunctionWithType("scroll", self.canvas.scroll_downleft),
             "Scroll down+right": FunctionWithType("scroll", self.canvas.scroll_downright),
-            "Zoom in": FunctionWithType("zoom", self.canvas.zoom_in),
-            "Zoom out": FunctionWithType("zoom", self.canvas.zoom_out),
+            "Zoom in": FunctionWithType("zoom", lambda _: self.canvas.zoom_in(None)),
+            "Zoom out": FunctionWithType("zoom", lambda _: self.canvas.zoom_out(None)),
             "Reset zoom": FunctionWithType("zoom", self.canvas.reset_zoom),
+            "Select move tool": FunctionWithType("tool", lambda _: self.canvas.set_tool("move")),
+            "Select place tool": FunctionWithType("tool", lambda _: self.canvas.set_tool("place")),
+            "Select drag tool": FunctionWithType("tool", lambda _: self.canvas.set_tool("drag")),
         }
 
         self.make_fixed_bindings()
@@ -106,6 +108,9 @@ class DraggyGraphApp:
             KeyBind(["Control_L", "0"], "Reset zoom"),
             KeyBind(["Control_L", "equal"], "Zoom in"),
             KeyBind(["Control_L", "minus"], "Zoom out"),
+            KeyBind(["1"], "Select move tool"),
+            KeyBind(["2"], "Select place tool"),
+            KeyBind(["3"], "Select drag tool")
         ]
 
         for keybind in keybinds:
@@ -135,6 +140,10 @@ class DraggyGraphApp:
         self.canvas.bind("<Shift-Button-4>", self.canvas.scroll_left)
         self.canvas.bind("<Shift-Button-5>", self.canvas.scroll_right)
 
+        # Graph canvas mouse "handler" function bindings.
+        self.canvas.bind("<Button-1>", self.canvas.handle_mouse1)
+        self.canvas.bind("<B1-Motion>", self.canvas.handle_drag)
+        self.canvas.bind("<Motion>", self.canvas.handle_motion)
 
 if __name__ == "__main__":
     DraggyGraphApp('the "its over" department')
