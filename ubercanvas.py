@@ -136,26 +136,6 @@ class UberCanvas:
         self.canvas.scan_dragto(event.x, event.y, gain=1)
         print("and... dragged up")
 
-
-def two_func(func1, func2):
-    def func3(*args):
-        func1(*args)
-        func2(*args)
-    return func3
-
-
-def scroll_up():
-    print("going up")
-
-
-def scroll_left():
-    print("going left")
-
-
-scroll_upleft = two_func(scroll_up, scroll_left)
-
-scroll_upleft()
-
 """
 
     def _handle_left_click(self, event):
