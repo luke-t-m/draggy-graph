@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 import signal
+from collections import defaultdict
 
 from ubercanvas import UberCanvas
 
@@ -11,6 +12,8 @@ class DraggyGraphApp():
 
         self.exit_msg = f"You have unsaved work!\nPlease confirm you wish to exit {self.app_name}."
         self.do_exit_msg = False
+
+        self.keys = defaultdict(lambda: False)
 
         # Window.
         self.root = tk.Tk()
@@ -40,10 +43,20 @@ class DraggyGraphApp():
     def do_close(self):
         if self.do_exit_msg and not messagebox.askokcancel(
             f"Exit {self.app_name}",
-            self.exit_msg,
+            self.exit_msg
         ):
             return
         self.destroy_app()
+
+    def key_pressed(self, event):
+        return
+    
+
+
+
+    def key_released(self, event):
+        return
+
 
     def make_bindings(self):
         # Zoom bindings.
@@ -51,11 +64,12 @@ class DraggyGraphApp():
         self.root.bind("<Control-0>", self.ubercanvas.reset_zoom)  # TODO
         self.ubercanvas.bind("<Control-Button-4>", self.ubercanvas.zoom_in)
         self.ubercanvas.bind("<Control-Button-5>", self.ubercanvas.zoom_out)
+        self.root.bind("<plus>", lambda _: self.ubercanvas.zoom_in(None))
+        self.root.bind("<minus>", lambda _: self.ubercanvas.zoom_out(None))
 
         # Drag canvas bindings.
-        #self.ubercanvas.bind("<Button-2>", self.ubercanvas.start_canvas_drag)
+        self.ubercanvas.bind("<Button-2>", self.ubercanvas.start_canvas_drag)
         self.ubercanvas.bind("<B2-Motion>", self.ubercanvas.canvas_drag)
-        self.ubercanvas.bind("<ButtonRelease-2>", self.ubercanvas.stop_canvas_drag)
 
         # Scroll canvas bindings.
         # TODO: only make these work if mouse is over canvas.
@@ -64,6 +78,22 @@ class DraggyGraphApp():
         self.ubercanvas.bind("<Shift-Button-4>", self.ubercanvas.scroll_left)
         self.ubercanvas.bind("<Shift-Button-5>", self.ubercanvas.scroll_right)
 
+        self.root.bind("<Up><Left>", self.ubercanvas.scroll_upleft)
+        self.root.bind("<Left><Up>", self.ubercanvas.scroll_upleft)
+
+
+        #self.root.bind("<Up>", self.ubercanvas.scroll_up)
+        #self.root.bind("<Down>", self.ubercanvas.scroll_down)
+        #self.root.bind("<Left>", self.ubercanvas.scroll_left)
+        #self.root.bind("<Right>", self.ubercanvas.scroll_right)
+
+        #self.root.bind("<Up+Right>", self.ubercanvas.scroll_upright)
+        #self.root.bind("<Left>", self.ubercanvas.scroll_left)
+        #self.root.bind("<Right>", self.ubercanvas.scroll_right)
+
 
 if __name__ == "__main__":
     DraggyGraphApp('the "its over" department')
+
+
+

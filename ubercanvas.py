@@ -1,5 +1,7 @@
 import tkinter as tk
 
+from helpers import consec_func
+
 
 # to-do:
 # vagueify variable names in code, no "midpoint" shit!!!
@@ -48,19 +50,15 @@ class UberCanvas:
         for i in range(-self.canvas_radius, self.canvas_radius + 1):
             # Vertical line.
             self.canvas.create_line(
-                i,
-                -self.canvas_radius,
-                i,
-                self.canvas_radius,
+                i, -self.canvas_radius,
+                i, self.canvas_radius,
                 fill="grey",
                 width=0.1,
             )
             # Horizontal line.
             self.canvas.create_line(
-                -self.canvas_radius,
-                i,
-                self.canvas_radius,
-                i,
+                -self.canvas_radius, i,
+                self.canvas_radius, i,
                 fill="grey",
                 width=0.1,
             )
@@ -87,13 +85,15 @@ class UberCanvas:
         )
 
     def change_zoom(self, factor, event=None):
+        print("we zoooom")
         if self.min_zoom < (new_zoom := self.zoom * factor) < self.max_zoom:
             self.zoom = new_zoom
             if event is not None:
                 true_x = self.canvas.canvasx(event.x)
                 true_y = self.canvas.canvasy(event.y)
             else:
-                true_x = true_y = 0
+                true_x = self.canvas.canvasx(self.canvas.winfo_width() / 2)
+                true_y = self.canvas.canvasy(self.canvas.winfo_height() / 2)
             self.canvas.scale("all", true_x, true_y, factor, factor)
             self.update_scroll_region()
 
@@ -123,16 +123,38 @@ class UberCanvas:
     def scroll_left(self, _):
         self.canvas.xview_scroll(-self.scroll_delta, "units")
 
-    # Start dragging on motion, and stop on button release.
-    # Why? Thinkpad touchpad middleclick only "presses" on release.
-    def canvas_drag(self, event):
+    scroll_upleft = consec_func(scroll_up, scroll_left)
+    scroll_upright = consec_func(scroll_up, scroll_right)
+    scroll_downleft = consec_func(scroll_down, scroll_left)
+    scroll_downright = consec_func(scroll_down, scroll_right)
+
+    def start_canvas_drag(self, event):
         self.canvas.scan_mark(event.x, event.y)
         print("we begin to drag")
 
-    def stop_canvas_drag(self, event):
+    def canvas_drag(self, event):
         self.canvas.scan_dragto(event.x, event.y, gain=1)
         print("and... dragged up")
 
+
+def two_func(func1, func2):
+    def func3(*args):
+        func1(*args)
+        func2(*args)
+    return func3
+
+
+def scroll_up():
+    print("going up")
+
+
+def scroll_left():
+    print("going left")
+
+
+scroll_upleft = two_func(scroll_up, scroll_left)
+
+scroll_upleft()
 
 """
 
