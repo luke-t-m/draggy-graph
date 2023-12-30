@@ -82,9 +82,8 @@ class UberCanvas:
                 true_x = self.canvas.canvasx(event.x)
                 true_y = self.canvas.canvasy(event.y)
             else:
-                true_x = self.canvas.canvasx(self.canvas.winfo_width() / 2)
+                true_x = self.canvas.canvasx(self.canvas.winfo_width() / 2) #TODO: make this werk right.
                 true_y = self.canvas.canvasy(self.canvas.winfo_height() / 2)
-                print(true_x, true_y)
             self.canvas.scale("all", true_x, true_y, factor, factor)
             self.update_scroll_region()
 
