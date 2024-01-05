@@ -9,31 +9,35 @@ class GraphCanvas(UberCanvas):
         self.tool = "move"
         self.holding = None
 
-        self.node_radius = 0.25
+        self.node_radius = 1
 
     def set_tool(self, tool):
         self.tool = tool
 
     def draw_circle(self, x, y, size, colour, tags=None):
         mod = size * self.zoom
-        return self.canvas.create_oval(
+
+        id = self.canvas.create_oval(
             x - mod, y - mod,
             x + mod, y + mod,
             fill=colour,
             tags=tags
         )
+
+        tags = [f"dep_{id}", "label"]
+        self.canvas.create_text(x, y, text="sneed", tags=tags)
     
     def move_circle(self, id, x, y):
         current_coords = self.canvas.coords(id)
         radius = (current_coords[2] - current_coords[0]) / 2
         self.canvas.coords(id, x - radius, y - radius, x + radius, y + radius)
 
-        # find all vertices with tags, and redraw them.
+        # find all vertices with tags, and redraw them. also text.
 
         node_x = (current_coords[0] + current_coords[2]) / 2
         node_y = (current_coords[1] + current_coords[3]) / 2
 
-        to_redraw = self.canvas.find_withtag(f"dep_{id}")
+        to_redraw = self.canvas.find_withtag(f"dep_{id}&&vertice")
         for vert_id in to_redraw:
             cur = self.canvas.coords(vert_id)
             if cur[0] == node_x and cur[1] == node_y:
@@ -45,10 +49,16 @@ class GraphCanvas(UberCanvas):
             
             self.canvas.coords(vert_id, *cur)
 
+        to_redraw = self.canvas.find_withtag(f"dep_{id}&&label")
+        print(to_redraw)
+        for text_id in to_redraw:
+            self.canvas.coords(text_id, x, y)
+
     def place_node(self, event):
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
         self.draw_circle(x, y, self.node_radius, "red", tags=("node", "draggable"))
+        self.canvas.create_oval()
 
     def create_vertice(self, node1_id, node2_id):
         node1_coords = self.canvas.coords(node1_id)
@@ -58,7 +68,7 @@ class GraphCanvas(UberCanvas):
         node2_x = (node2_coords[0] + node2_coords[2]) / 2
         node2_y = (node2_coords[1] + node2_coords[3]) / 2
 
-        tags = [f"dep_{node1_id}", f"dep_{node2_id}"]
+        tags = [f"dep_{node1_id}", f"dep_{node2_id}", "vertice"]
 
         self.canvas.create_line(node1_x, node1_y, node2_x, node2_y, tags=tags)
 
@@ -70,6 +80,8 @@ class GraphCanvas(UberCanvas):
     
     
     # Functions that yearn to be bound.
+            
+    # TODO: zooming breaks vertices.
     
     def handle_mouse1(self, event):
         cx, cy = get_canvas_xy(self.canvas, event)
