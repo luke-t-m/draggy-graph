@@ -76,7 +76,7 @@ class UberCanvas:
         )
 
     def change_zoom(self, factor, event=None):
-        if self.min_zoom < (new_zoom := self.zoom * factor) < self.max_zoom:
+        if self.min_zoom <= (new_zoom := self.zoom * factor) <= self.max_zoom:
             self.zoom = new_zoom
             if event is not None:
                 true_x = self.canvas.canvasx(event.x)
@@ -91,9 +91,12 @@ class UberCanvas:
         self.change_zoom(new_zoom / self.zoom)
 
     # Functions that want to be bound.
+        
+    import time
 
     def reset_zoom(self, _):
-        self.set_zoom(2) # TODO
+        self.set_zoom(1) #TODO
+        
 
     def zoom_in(self, event):
         self.change_zoom(1 + self.zoom_delta, event)

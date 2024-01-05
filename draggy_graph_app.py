@@ -53,6 +53,7 @@ class DraggyGraphApp:
             "Select move tool": FunctionWithType("tool", lambda _: self.canvas.set_tool("move")),
             "Select place tool": FunctionWithType("tool", lambda _: self.canvas.set_tool("place")),
             "Select drag tool": FunctionWithType("tool", lambda _: self.canvas.set_tool("drag")),
+            "Select connect tool": FunctionWithType("tool", lambda _: self.canvas.set_tool("connect")),
         }
 
         self.make_fixed_bindings()
@@ -110,7 +111,8 @@ class DraggyGraphApp:
             KeyBind(["Control_L", "minus"], "Zoom out"),
             KeyBind(["1"], "Select move tool"),
             KeyBind(["2"], "Select place tool"),
-            KeyBind(["3"], "Select drag tool")
+            KeyBind(["3"], "Select drag tool"),
+            KeyBind(["4"], "Select connect tool"),
         ]
 
         for keybind in keybinds:

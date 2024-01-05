@@ -33,6 +33,11 @@ class GraphCanvas(UberCanvas):
         y = self.canvas.canvasy(event.y)
         self.draw_circle(x, y, self.node_radius, "red", tags=("node", "draggable"))
 
+    def make_vertice(self, id1, id2):
+        a = self.canvas.coords(id1)
+        # TODO: get coords of 1 and 2. draw line. tag with ids of 1 and 2.
+        # whenever node is moved, change coords of anything tagged with those ids.
+
     def find_at_xy(self, x, y, tag):
         under_mouse = self.canvas.find_overlapping(x - SMALL_NUM, y - SMALL_NUM, x + SMALL_NUM, y + SMALL_NUM)
         for id in under_mouse:
@@ -53,6 +58,9 @@ class GraphCanvas(UberCanvas):
                 self.holding = self.find_at_xy(cx, cy, "draggable")
             case "connect":
                 self.holding = self.find_at_xy(cx, cy, "node")
+
+    def handle_mouse1_release(self, event):
+        return
 
 
     def handle_motion(self, event):
