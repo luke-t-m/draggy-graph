@@ -82,7 +82,7 @@ class UberCanvas:
                 true_x = self.canvas.canvasx(event.x)
                 true_y = self.canvas.canvasy(event.y)
             else:
-                true_x = self.canvas.canvasx(self.canvas.winfo_width() / 2) #TODO: make this werk right.
+                true_x = self.canvas.canvasx(self.canvas.winfo_width() / 2)
                 true_y = self.canvas.canvasy(self.canvas.winfo_height() / 2)
             self.canvas.scale("all", true_x, true_y, factor, factor)
             self.update_scroll_region()
@@ -91,12 +91,9 @@ class UberCanvas:
         self.change_zoom(new_zoom / self.zoom)
 
     # Functions that want to be bound.
-        
-    import time
 
     def reset_zoom(self, _):
         self.set_zoom(1) #TODO
-        
 
     def zoom_in(self, event):
         self.change_zoom(1 + self.zoom_delta, event)

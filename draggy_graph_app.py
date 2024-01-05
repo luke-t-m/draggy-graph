@@ -11,10 +11,12 @@ class KeyBind:
         self.keys = keys
         self.func_name = func_name
 
+
 class FunctionWithType:
     def __init__(self, type, func):
         self.type = type
         self.func = func
+
 
 class DraggyGraphApp:
     def __init__(self, app_name):
