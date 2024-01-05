@@ -28,6 +28,23 @@ class GraphCanvas(UberCanvas):
         radius = (current_coords[2] - current_coords[0]) / 2
         self.canvas.coords(id, x - radius, y - radius, x + radius, y + radius)
 
+        # find all vertices with tags, and redraw them.
+
+        node_x = (current_coords[0] + current_coords[2]) / 2
+        node_y = (current_coords[1] + current_coords[3]) / 2
+
+        to_redraw = self.canvas.find_withtag(f"dep_{id}")
+        for vert_id in to_redraw:
+            cur = self.canvas.coords(vert_id)
+            if cur[0] == node_x and cur[1] == node_y:
+                cur[0] = x
+                cur[1] = y
+            else:
+                cur[2] = x
+                cur[3] = y
+            
+            self.canvas.coords(vert_id, *cur)
+
     def place_node(self, event):
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
@@ -41,7 +58,9 @@ class GraphCanvas(UberCanvas):
         node2_x = (node2_coords[0] + node2_coords[2]) / 2
         node2_y = (node2_coords[1] + node2_coords[3]) / 2
 
-        self.canvas.create_line(node1_x, node1_y, node2_x, node2_y)
+        tags = [f"dep_{node1_id}", f"dep_{node2_id}"]
+
+        self.canvas.create_line(node1_x, node1_y, node2_x, node2_y, tags=tags)
 
     def find_at_xy(self, x, y, tag):
         under_mouse = self.canvas.find_overlapping(x - SMALL_NUM, y - SMALL_NUM, x + SMALL_NUM, y + SMALL_NUM)
@@ -63,7 +82,9 @@ class GraphCanvas(UberCanvas):
                 self.holding = self.find_at_xy(cx, cy, "draggable")
             case "connect":
                 found = self.find_at_xy(cx, cy, "node")
-                if self.holding is not None and found is not None:
+                good = len(self.canvas.find_withtag(f"dep_{found}&&dep_{self.holding}")) == 0
+                print(good)
+                if self.holding is not None and found is not None and self.holding != found and good:
                     self.create_vertice(self.holding, found)
 
                 self.holding = found
