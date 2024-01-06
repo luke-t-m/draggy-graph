@@ -1,5 +1,6 @@
 from ubercanvas import UberCanvas
 from helpers import get_canvas_xy, SMALL_NUM, close_enough
+from tkinter.simpledialog import askstring
 
 
 class GraphCanvas(UberCanvas):
@@ -13,6 +14,7 @@ class GraphCanvas(UberCanvas):
 
     def set_tool(self, tool):
         self.tool = tool
+        self.holding = None
 
     def draw_circle(self, x, y, size, colour, tags=None):
         mod = size * self.zoom
@@ -70,13 +72,26 @@ class GraphCanvas(UberCanvas):
 
         tags = [f"dep_{node1_id}", f"dep_{node2_id}", "vertice"]
 
-        self.canvas.create_line(node1_x, node1_y, node2_x, node2_y, tags=tags)
+        self.canvas.create_line(node1_x, node1_y, node2_x, node2_y, width=2, tags=tags, arrow="last")
+        self.canvas.tag_lower("vertice")
 
     def find_at_xy(self, x, y, tag):
         under_mouse = self.canvas.find_overlapping(x - SMALL_NUM, y - SMALL_NUM, x + SMALL_NUM, y + SMALL_NUM)
         for id in under_mouse:
             if tag in self.canvas.gettags(id):
                 return id
+
+    def do_rename(self, event):
+        x, y = get_canvas_xy(self.canvas, event)
+        node_id = self.find_at_xy(x, y, "node")
+
+        label_id = self.canvas.find_withtag(f"dep_{node_id}&&label")[0]
+
+        new_text = askstring("Title", "Prompt")
+
+
+
+        self.canvas.itemconfig(label_id, text=new_text)
     
     
     # Functions that yearn to be bound.
@@ -94,12 +109,19 @@ class GraphCanvas(UberCanvas):
                 self.holding = self.find_at_xy(cx, cy, "draggable")
             case "connect":
                 found = self.find_at_xy(cx, cy, "node")
-                good = len(self.canvas.find_withtag(f"dep_{found}&&dep_{self.holding}")) == 0
-                print(good)
-                if self.holding is not None and found is not None and self.holding != found and good:
-                    self.create_vertice(self.holding, found)
+                pos_vert = self.canvas.find_withtag(f"dep_{found}&&dep_{self.holding}")
+                if self.holding is not None and found is not None and self.holding != found:
+                    if len(pos_vert) != 0:
+                        self.canvas.delete(pos_vert[0])
+                    else:
+                        self.create_vertice(self.holding, found)
 
-                self.holding = found
+                    self.holding = None
+                else:
+                    self.holding = found
+            case "rename":
+                self.do_rename(event)
+
 
     def handle_mouse1_release(self, event):
         return
