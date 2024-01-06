@@ -1,5 +1,5 @@
 from ubercanvas import UberCanvas
-from helpers import get_canvas_xy, SMALL_NUM
+from helpers import get_canvas_xy, SMALL_NUM, close_enough
 
 
 class GraphCanvas(UberCanvas):
@@ -40,7 +40,7 @@ class GraphCanvas(UberCanvas):
         to_redraw = self.canvas.find_withtag(f"dep_{id}&&vertice")
         for vert_id in to_redraw:
             cur = self.canvas.coords(vert_id)
-            if cur[0] == node_x and cur[1] == node_y:
+            if close_enough(cur[0], node_x) and close_enough(cur[1], node_y):
                 cur[0] = x
                 cur[1] = y
             else:

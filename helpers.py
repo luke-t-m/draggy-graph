@@ -11,3 +11,7 @@ def consec_func(func1, func2):
 
 def get_canvas_xy(canvas, event):
     return canvas.canvasx(event.x), canvas.canvasy(event.y)
+
+
+def close_enough(a, b):
+    return abs(a - b) <= SMALL_NUM
